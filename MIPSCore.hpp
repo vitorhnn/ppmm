@@ -20,6 +20,8 @@ struct MIPSCore {
 private:
     void ADDU();
 
+    void BEQ();
+
     void BNE();
 
     void ADDIU();

@@ -38,6 +38,9 @@ bool MIPSCore::Cycle()
             }
         }
         break;
+        case 0x04:
+            BEQ();
+            break;
         case 0x05:
             BNE();
             break;
@@ -67,13 +70,23 @@ void MIPSCore::ADDU()
     pc++;
 }
 
+void MIPSCore::BEQ()
+{
+    DECODE_I;
+
+    if (gpr[rs] == gpr[rt]) {
+        pc += imm;
+    }
+
+    pc++;
+}
+
 void MIPSCore::BNE()
 {
     DECODE_I;
 
     if (gpr[rs] != gpr[rt]) {
-        pc = pc + 1 + imm;
-        return;
+        pc += imm;
     }
 
     pc++;
