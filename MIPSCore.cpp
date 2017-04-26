@@ -3,7 +3,7 @@
 
 #define DECODE_I u32 rs = (memory[pc] >> 21) & 0x1F, \
                         rt = (memory[pc] >> 16) & 0x1F; \
-                        s32 imm = (s16) (memory[pc] & 0xFFFF);
+                        s32 imm = static_cast<s16>(memory[pc] & 0xFFFF);
 
 #define DECODE_R u32 rs = (memory[pc] >> 21) & 0x1F, \
                         rt = (memory[pc] >> 16) & 0x1F, \
@@ -12,6 +12,8 @@
 
 MIPSCore::MIPSCore() :
     gpr({0}),
+    hi(0),
+    lo(0),
     pc(0),
     memory({0})
 {
@@ -31,6 +33,9 @@ bool MIPSCore::Cycle()
             // R instructions
             u32 funct = (memory[pc] & 0x3F);
             switch (funct) {
+                case 0x19:
+                    MULTU();
+                    break;
                 case 0x21:
                     ADDU();
                     break;
@@ -60,6 +65,18 @@ bool MIPSCore::Cycle()
     gpr[0] = 0; // $0 is ALWAYS zero. (at least to an external viewer)
 
     return true;
+}
+
+void MIPSCore::MULTU()
+{
+    DECODE_R;
+
+    u64 res = static_cast<u64>(gpr[rs]) * static_cast<u64>(gpr[rt]);
+
+    hi = static_cast<s32>(res >> 32);
+    lo = static_cast<s32>(res & 0xFFFFFFF);
+
+    pc++;
 }
 
 void MIPSCore::ADDU()
