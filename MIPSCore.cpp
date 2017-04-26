@@ -1,4 +1,5 @@
 #include "MIPSCore.hpp"
+#include "MIPSException.hpp"
 
 #define DECODE_I u32 rs = (memory[pc] >> 21) & 0x1F, \
                         rt = (memory[pc] >> 16) & 0x1F; \
@@ -34,7 +35,7 @@ bool MIPSCore::Cycle()
                     ADDU();
                     break;
                 default:
-                    throw std::runtime_error("unknown opcode");
+                    throw UndefinedInstructionException(opcode, funct);
             }
         }
         break;
@@ -54,7 +55,7 @@ bool MIPSCore::Cycle()
             ORI();
             break;
         default:
-            throw std::runtime_error("unknown opcode");
+            throw UndefinedInstructionException(opcode, 0);
     }
     gpr[0] = 0; // $0 is ALWAYS zero. (at least to an external viewer)
 
