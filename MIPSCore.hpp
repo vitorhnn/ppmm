@@ -26,6 +26,8 @@ struct MIPSCore {
     bool Cycle();
 
 private:
+    void MULT();
+
     void MULTU();
 
     void ADDU();

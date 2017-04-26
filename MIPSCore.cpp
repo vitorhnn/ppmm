@@ -33,6 +33,9 @@ bool MIPSCore::Cycle()
             // R instructions
             u32 funct = (memory[pc] & 0x3F);
             switch (funct) {
+                case 0x18:
+                    MULT();
+                    break;
                 case 0x19:
                     MULTU();
                     break;
@@ -67,14 +70,26 @@ bool MIPSCore::Cycle()
     return true;
 }
 
+void MIPSCore::MULT()
+{
+    DECODE_R;
+
+    s64 res = static_cast<s32>(gpr[rs]) * static_cast<s32>(gpr[rt]);
+
+    hi = static_cast<u32>(res >> 32);
+    lo = static_cast<u32>(res & 0xFFFFFFF);
+
+    pc++;
+}
+
 void MIPSCore::MULTU()
 {
     DECODE_R;
 
     u64 res = static_cast<u64>(gpr[rs]) * static_cast<u64>(gpr[rt]);
 
-    hi = static_cast<s32>(res >> 32);
-    lo = static_cast<s32>(res & 0xFFFFFFF);
+    hi = static_cast<u32>(res >> 32);
+    lo = static_cast<u32>(res & 0xFFFFFFF);
 
     pc++;
 }
