@@ -56,6 +56,12 @@ bool MIPSCore::Cycle()
         case 0x09:
             ADDIU();
             break;
+        case 0x0A:
+            SLTI();
+            break;
+        case 0x0B:
+            SLTIU();
+            break;
         case 0x0C:
             ANDI();
             break;
@@ -130,6 +136,24 @@ void MIPSCore::ADDIU()
     DECODE_I;
 
     gpr[rt] = gpr[rs] + imm;
+
+    pc++;
+}
+
+void MIPSCore::SLTI()
+{
+    DECODE_I;
+
+    gpr[rt] = static_cast<u32>(static_cast<s32>(gpr[rs]) < imm);
+
+    pc++;
+}
+
+void MIPSCore::SLTIU()
+{
+    DECODE_I;
+
+    gpr[rt] = static_cast<u32>(gpr[rs] < static_cast<u16>(imm));
 
     pc++;
 }

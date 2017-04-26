@@ -38,6 +38,10 @@ private:
 
     void ADDIU();
 
+    void SLTI();
+
+    void SLTIU();
+
     void ANDI();
 
     void ORI();
