@@ -6,9 +6,9 @@
 #include <sstream>
 
 struct MIPSException : public std::exception {
-    virtual ~MIPSException() throw () {};
+    virtual ~MIPSException() noexcept {};
 
-    virtual const char* what() const throw() override = 0;
+    virtual const char* what() const noexcept override = 0;
 };
 
 struct UndefinedInstructionException : public MIPSException {
@@ -23,9 +23,9 @@ struct UndefinedInstructionException : public MIPSException {
         msg = stream.str();
     }
 
-    virtual ~UndefinedInstructionException() throw () {};
+    virtual ~UndefinedInstructionException() noexcept {};
 
-    virtual const char* what() const throw() override
+    virtual const char* what() const noexcept override
     {
         return msg.c_str();
     }
