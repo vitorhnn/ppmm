@@ -42,6 +42,18 @@ bool MIPSCore::Cycle()
                 case 0x21:
                     ADDU();
                     break;
+                case 0x22:
+                    SUB();
+                    break;
+                case 0x24:
+                    AND();
+                    break;
+                case 0x25:
+                    OR();
+                    break;
+                case 0x27:
+                    NOR();
+                    break;
                 default:
                     throw UndefinedInstructionException(opcode, funct);
             }
@@ -105,6 +117,43 @@ void MIPSCore::ADDU()
     DECODE_R;
 
     gpr[rd] = gpr[rs] + gpr[rt];
+
+    pc++;
+}
+
+void MIPSCore::SUB()
+{
+    // TODO: throw on overflow
+    DECODE_R;
+
+    gpr[rd] = gpr[rs] - gpr[rt];
+
+    pc++;
+}
+
+void MIPSCore::AND()
+{
+    DECODE_R;
+
+    gpr[rd] = gpr[rs] & gpr[rt];
+
+    pc++;
+}
+
+void MIPSCore::OR()
+{
+    DECODE_R;
+
+    gpr[rd] = gpr[rs] | gpr[rt];
+
+    pc++;
+}
+
+void MIPSCore::NOR()
+{
+    DECODE_R;
+
+    gpr[rd] = !(gpr[rs] | gpr[rt]);
 
     pc++;
 }

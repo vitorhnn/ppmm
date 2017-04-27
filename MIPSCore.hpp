@@ -32,6 +32,14 @@ private:
 
     void ADDU();
 
+    void SUB();
+
+    void AND();
+
+    void OR();
+
+    void NOR();
+
     void BEQ();
 
     void BNE();
