@@ -1,14 +1,14 @@
 #include "MIPSCore.hpp"
 #include "MIPSException.hpp"
 
-#define DECODE_I u32 rs = (memory[pc] >> 21) & 0x1F, \
-                        rt = (memory[pc] >> 16) & 0x1F; \
-                        s32 imm = static_cast<s16>(memory[pc] & 0xFFFF);
+#define DECODE_I u32 rs = (instruction >> 21) & 0x1F, \
+                        rt = (instruction >> 16) & 0x1F; \
+                        s32 imm = static_cast<s16>(instruction & 0xFFFF);
 
-#define DECODE_R u32 rs = (memory[pc] >> 21) & 0x1F, \
-                        rt = (memory[pc] >> 16) & 0x1F, \
-                        rd = (memory[pc] >> 11) & 0x1F, \
-                        shamt = (memory[pc] >> 6) & 0x1F;
+#define DECODE_R u32 rs = (instruction >> 21) & 0x1F, \
+                        rt = (instruction >> 16) & 0x1F, \
+                        rd = (instruction >> 11) & 0x1F, \
+                        shamt = (instruction >> 6) & 0x1F;
 
 MIPSCore::MIPSCore() :
     gpr({}),
@@ -21,17 +21,18 @@ MIPSCore::MIPSCore() :
 
 bool MIPSCore::Cycle()
 {
-    if (memory[pc] == 0) {
+    instruction = memory[pc];
+    if (instruction == 0) {
         return false;
     }
 
     // first 6 bits on a MIPS instruction are the opcode
-    u32 opcode = (memory[pc] >> 26);
+    u32 opcode = (instruction >> 26);
 
     switch (opcode) {
         case 0x00: {
             // R instructions
-            u32 funct = (memory[pc] & 0x3F);
+            u32 funct = (instruction & 0x3F);
             switch (funct) {
                 case 0x18:
                     MULT();
