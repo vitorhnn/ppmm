@@ -29,6 +29,12 @@ struct MIPSCore {
 private:
     u32 instruction;
 
+    void J();
+
+    void MFHI();
+
+    void MFLO();
+
     void MULT();
 
     void MULTU();

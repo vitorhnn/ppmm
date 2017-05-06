@@ -34,6 +34,12 @@ bool MIPSCore::Cycle()
             // R instructions
             u32 funct = (instruction & 0x3F);
             switch (funct) {
+                case 0x10:
+                    MFHI();
+                    break;
+                case 0x12:
+                    MFLO();
+                    break;
                 case 0x18:
                     MULT();
                     break;
@@ -63,6 +69,9 @@ bool MIPSCore::Cycle()
             }
         }
         break;
+        case 0x02:
+            J();
+            break;
         case 0x04:
             BEQ();
             break;
@@ -99,6 +108,31 @@ bool MIPSCore::Cycle()
     gpr[0] = 0; // $0 is ALWAYS zero. (at least to an external viewer)
 
     return true;
+}
+
+void MIPSCore::J()
+{
+    u32 address = (pc & 0xF0000000) | ((instruction & 0xFFFFFF) << 2);
+
+    pc = address / 4;
+}
+
+void MIPSCore::MFHI()
+{
+    DECODE_R;
+
+    gpr[rd] = hi;
+
+    pc++;
+}
+
+void MIPSCore::MFLO()
+{
+    DECODE_R;
+
+    gpr[rd] = lo;
+
+    pc++;
 }
 
 void MIPSCore::MULT()
