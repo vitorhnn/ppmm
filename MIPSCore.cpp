@@ -11,11 +11,11 @@
                         shamt = (memory[pc] >> 6) & 0x1F;
 
 MIPSCore::MIPSCore() :
-    gpr({0}),
+    gpr({}),
     hi(0),
     lo(0),
     pc(0),
-    memory({0})
+    memory()
 {
 }
 
@@ -54,8 +54,11 @@ bool MIPSCore::Cycle()
                 case 0x27:
                     NOR();
                     break;
+                case 0x2A:
+                    SLT();
+                    break;
                 default:
-                    throw UndefinedInstructionException(opcode, funct);
+                    throw UndefinedInstructionException(opcode, funct, pc);
             }
         }
         break;
@@ -80,8 +83,17 @@ bool MIPSCore::Cycle()
         case 0x0D:
             ORI();
             break;
+        case 0x0F:
+            LUI();
+            break;
+        case 0x23:
+            LW();
+            break;
+        case 0x2B:
+            SW();
+            break;
         default:
-            throw UndefinedInstructionException(opcode, 0);
+            throw UndefinedInstructionException(opcode, 0, pc);
     }
     gpr[0] = 0; // $0 is ALWAYS zero. (at least to an external viewer)
 
@@ -153,7 +165,16 @@ void MIPSCore::NOR()
 {
     DECODE_R;
 
-    gpr[rd] = !(gpr[rs] | gpr[rt]);
+    gpr[rd] = static_cast<u32>(!(gpr[rs] | gpr[rt]));
+
+    pc++;
+}
+
+void MIPSCore::SLT()
+{
+    DECODE_R;
+
+    gpr[rd] = static_cast<u32>(static_cast<s32>(gpr[rs]) < static_cast<s32>(gpr[rt]));
 
     pc++;
 }
@@ -221,6 +242,41 @@ void MIPSCore::ORI()
     DECODE_I;
 
     gpr[rt] = gpr[rs] | imm;
+
+    pc++;
+}
+
+void MIPSCore::LUI()
+{
+    DECODE_I;
+
+    gpr[rt] = static_cast<u32>(imm) << 16;
+
+    pc++;
+}
+
+void MIPSCore::LW()
+{
+    DECODE_I;
+
+    if (((gpr[rs] + imm) % 4) != 0) {
+        throw UnalignedAccessException(pc, gpr[rs] + imm);
+    }
+
+    gpr[rt] = memory[(gpr[rs] + imm) / 4];
+
+    pc++;
+}
+
+void MIPSCore::SW()
+{
+    DECODE_I;
+
+    if (((gpr[rs] + imm) % 4) != 0) {
+        throw UnalignedAccessException(pc, gpr[rs] + imm);
+    }
+
+    memory[(gpr[rs] + imm) / 4] = gpr[rt];
 
     pc++;
 }

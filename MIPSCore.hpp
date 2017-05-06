@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <array>
+#include <unordered_map>
 
 
 using u64 = uint64_t;
@@ -19,7 +20,7 @@ struct MIPSCore {
 
     u32 pc;
 
-    std::array<u32, 1024> memory;
+    std::unordered_map<u32, u32> memory;
 
     MIPSCore();
 
@@ -40,6 +41,8 @@ private:
 
     void NOR();
 
+    void SLT();
+
     void BEQ();
 
     void BNE();
@@ -53,4 +56,10 @@ private:
     void ANDI();
 
     void ORI();
+
+    void LUI();
+
+    void LW();
+
+    void SW();
 };
