@@ -34,6 +34,8 @@ bool MIPSCore::Cycle()
             // R instructions
             u32 funct = (instruction & 0x3F);
             switch (funct) {
+                case 0x0C:
+                    SYSCALL();
                 case 0x10:
                     MFHI();
                     break;
@@ -108,6 +110,18 @@ bool MIPSCore::Cycle()
     gpr[0] = 0; // $0 is ALWAYS zero. (at least to an external viewer)
 
     return true;
+}
+
+void MIPSCore::SYSCALL()
+{
+    // TODO: create a sink system for this
+
+    switch (gpr[2]) {
+        case 1: {
+            printf("%d\n", gpr[4]);
+            break;
+        }
+    }
 }
 
 void MIPSCore::J()

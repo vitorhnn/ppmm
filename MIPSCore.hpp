@@ -29,6 +29,8 @@ struct MIPSCore {
 private:
     u32 instruction;
 
+    void SYSCALL();
+
     void J();
 
     void MFHI();
