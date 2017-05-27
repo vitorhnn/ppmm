@@ -21,8 +21,9 @@ MIPSCore::MIPSCore() :
 
 bool MIPSCore::Cycle()
 {
-    instruction = memory[pc];
-    if (instruction == 0) {
+    try {
+        instruction = memory.at(pc);
+    } catch (const std::out_of_range& exception) {
         return false;
     }
 
@@ -34,8 +35,12 @@ bool MIPSCore::Cycle()
             // R instructions
             u32 funct = (instruction & 0x3F);
             switch (funct) {
+                case 0x08:
+                    JR();
+                    break;
                 case 0x0C:
                     SYSCALL();
+                    break;
                 case 0x10:
                     MFHI();
                     break;
@@ -73,6 +78,9 @@ bool MIPSCore::Cycle()
         break;
         case 0x02:
             J();
+            break;
+        case 0x03:
+            JAL();
             break;
         case 0x04:
             BEQ();
@@ -112,6 +120,13 @@ bool MIPSCore::Cycle()
     return true;
 }
 
+void MIPSCore::JR()
+{
+    DECODE_R;
+
+    pc = gpr[rs] / 4;
+}
+
 void MIPSCore::SYSCALL()
 {
     // TODO: create a sink system for this
@@ -121,11 +136,34 @@ void MIPSCore::SYSCALL()
             printf("%d\n", gpr[4]);
             break;
         }
+        /*case 4: {
+            printf("%s\n", gpr[4]);
+            break;
+        }
+        case 5: {
+            scanf("%d\n", &gpr[2]);
+            break;
+        }
+        case 8: {
+            fgets(gpr[4], gpr[5], stdin);
+            break;
+        }*/
     }
+
+    pc++;
 }
 
 void MIPSCore::J()
 {
+    u32 address = (pc & 0xF0000000) | ((instruction & 0xFFFFFF) << 2);
+
+    pc = address / 4;
+}
+
+void MIPSCore::JAL()
+{
+    gpr[31] = (pc + 1) * 4;
+
     u32 address = (pc & 0xF0000000) | ((instruction & 0xFFFFFF) << 2);
 
     pc = address / 4;
@@ -169,6 +207,16 @@ void MIPSCore::MULTU()
 
     hi = static_cast<u32>(res >> 32);
     lo = static_cast<u32>(res & 0xFFFFFFF);
+
+    pc++;
+}
+
+void MIPSCore::ADD()
+{
+    // TODO: throw on overflow    
+    DECODE_R;
+
+    gpr[rd] = gpr[rs] + gpr[rt];
 
     pc++;
 }
