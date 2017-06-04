@@ -53,6 +53,9 @@ bool MIPSCore::Cycle()
                 case 0x19:
                     MULTU();
                     break;
+                case 0x20:
+                    ADD();
+                    break;
                 case 0x21:
                     ADDU();
                     break;
@@ -64,6 +67,9 @@ bool MIPSCore::Cycle()
                     break;
                 case 0x25:
                     OR();
+                    break;
+                case 0x26:
+                    XOR();
                     break;
                 case 0x27:
                     NOR();
@@ -88,6 +94,15 @@ bool MIPSCore::Cycle()
         case 0x05:
             BNE();
             break;
+        case 0x06:
+            BLEZ();
+            break;
+        case 0x07:
+            BGTZ();
+            break;
+        case 0x08:
+            ADDI();
+            break;
         case 0x09:
             ADDIU();
             break;
@@ -103,11 +118,27 @@ bool MIPSCore::Cycle()
         case 0x0D:
             ORI();
             break;
+        case 0x0E:
+            XORI();
+            break;
         case 0x0F:
             LUI();
             break;
+        case 0x20:
+            LB();
+            break;            
+        case 0x21:
+            LH();
+            break;
+        case 0x22: // fallthrough            
         case 0x23:
             LW();
+            break;
+        case 0x28:
+            SB();
+            break;
+        case 0x29:
+            SH();
             break;
         case 0x2B:
             SW();
@@ -151,22 +182,6 @@ void MIPSCore::SYSCALL()
     }
 
     pc++;
-}
-
-void MIPSCore::J()
-{
-    u32 address = (pc & 0xF0000000) | ((instruction & 0xFFFFFF) << 2);
-
-    pc = address / 4;
-}
-
-void MIPSCore::JAL()
-{
-    gpr[31] = (pc + 1) * 4;
-
-    u32 address = (pc & 0xF0000000) | ((instruction & 0xFFFFFF) << 2);
-
-    pc = address / 4;
 }
 
 void MIPSCore::MFHI()
@@ -258,6 +273,15 @@ void MIPSCore::OR()
     pc++;
 }
 
+void MIPSCore::XOR()
+{
+    DECODE_R;
+
+    gpr[rd] = gpr[rs] ^ gpr[rt];
+
+    pc++;
+}
+
 void MIPSCore::NOR()
 {
     DECODE_R;
@@ -274,6 +298,22 @@ void MIPSCore::SLT()
     gpr[rd] = static_cast<u32>(static_cast<s32>(gpr[rs]) < static_cast<s32>(gpr[rt]));
 
     pc++;
+}
+
+void MIPSCore::J()
+{
+    u32 address = (pc & 0xF0000000) | ((instruction & 0xFFFFFF) << 2);
+
+    pc = address / 4;
+}
+
+void MIPSCore::JAL()
+{
+    gpr[31] = (pc + 1) * 4;
+
+    u32 address = (pc & 0xF0000000) | ((instruction & 0xFFFFFF) << 2);
+
+    pc = address / 4;
 }
 
 void MIPSCore::BEQ()
@@ -296,6 +336,37 @@ void MIPSCore::BNE()
     }
 
     pc++;
+}
+
+void MIPSCore::BLEZ()//
+{
+    DECODE_I;
+
+    if (gpr[rs] <= 0) {
+        pc += imm;
+    }
+
+    pc++;
+}
+
+void MIPSCore::BGTZ()//
+{
+    DECODE_I;
+
+    if (gpr[rs] > 0) {
+        pc += imm;
+    }
+
+    pc++;
+}
+
+void MIPSCore::ADDI()
+{
+    DECODE_I;
+
+    gpr[rt] = gpr[rs] + imm;
+
+    pc++;    
 }
 
 void MIPSCore::ADDIU()
@@ -343,11 +414,62 @@ void MIPSCore::ORI()
     pc++;
 }
 
+void MIPSCore::XORI()//
+{
+    DECODE_I;
+
+    gpr[rt] = gpr[rs] ^ imm;
+
+    pc++;
+}
+
 void MIPSCore::LUI()
 {
     DECODE_I;
 
     gpr[rt] = static_cast<u32>(imm) << 16;
+
+    pc++;
+}
+
+void MIPSCore::LB()//
+{
+    DECODE_I;
+
+    uint16_t offset = imm / 4;
+
+    u32 word = memory[(gpr[rs] + offset) / 4];
+
+    uint16_t little_box = imm % 4;
+
+    u8 byte = (word >> (24 - little_box * 8)) & 0xFF;
+
+    s32 value = static_cast<s32>(static_cast<s8>(byte));
+
+    gpr[rs] = value;
+
+    pc++;
+}
+
+void MIPSCore::LH()//
+{
+    DECODE_I;
+
+    if (((gpr[rs] + imm) % 2) != 0) {
+        throw UnalignedAccessException(pc, gpr[rs] + imm);
+    }
+
+    uint16_t offset = imm / 4;
+
+    u32 word = memory[(gpr[rs] + offset) / 4];
+
+    uint16_t little_box = imm % 4;
+
+    u16 half = (word >> (16 - little_box * 16)) & 0xFFFF;
+
+    s32 value = static_cast<s32>(static_cast<s16>(half));
+
+    gpr[rs] = value;
 
     pc++;
 }
