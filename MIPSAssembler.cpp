@@ -1,5 +1,7 @@
 #include "MIPSAssembler.hpp"
 
+#include <unordered_map>
+
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix_core.hpp>
 #include <boost/spirit/include/phoenix_operator.hpp>
@@ -101,10 +103,10 @@ struct AsmGrammar : qi::grammar<Iterator, MipsAsm(), Skipper> {
         using phoenix::val;
         using namespace qi::labels;
 
-        directive = 
-            '.' 
-            >> lexeme 
-            [ 
+        directive =
+            '.'
+            >> lexeme
+            [
                 as_string
                 [
                     (
@@ -117,8 +119,8 @@ struct AsmGrammar : qi::grammar<Iterator, MipsAsm(), Skipper> {
             ]
             >> +(char_ - qi::eol) [at_c<1>(_val) += _1];
 
-        instruction = 
-            lexeme 
+        instruction =
+            lexeme
             [
                 as_string
                 [
@@ -130,7 +132,7 @@ struct AsmGrammar : qi::grammar<Iterator, MipsAsm(), Skipper> {
                 ] [at_c<0>(_val) = _1]
                 >> ' '
             ]
-            >> 
+            >>
             *(
                 as_string
                 [
@@ -149,7 +151,7 @@ struct AsmGrammar : qi::grammar<Iterator, MipsAsm(), Skipper> {
             )
             >> ':';
 
-        line = 
+        line =
             -label [at_c<0>(_val) = _1]
             >> (directive | instruction) [at_c<1>(_val) = _1]
             >> -qi::eol;
@@ -159,7 +161,7 @@ struct AsmGrammar : qi::grammar<Iterator, MipsAsm(), Skipper> {
 
         /*
          * DEBUG GARBO
-         *
+         */
         root.name("root");
         line.name("line");
         label.name("label");
@@ -171,7 +173,6 @@ struct AsmGrammar : qi::grammar<Iterator, MipsAsm(), Skipper> {
         debug(label);
         debug(directive);
         debug(instruction);
-        */
     }
 
     qi::rule<Iterator, Directive(), Skipper> directive;
@@ -181,7 +182,136 @@ struct AsmGrammar : qi::grammar<Iterator, MipsAsm(), Skipper> {
     qi::rule<Iterator, MipsAsm(), Skipper> root;
 };
 
-int main()
+static std::unordered_map<std::string, uint32_t> registerMap = {
+    {"$zero", 0},
+    {"$at", 1},
+    {"$v0", 2},
+    {"$v1", 3},
+    {"$a0", 4}
+};
+
+static std::unordered_map<std::string, uint32_t> opcodeMap = {
+    {"beq", 4},
+    {"bne", 5},
+    {"blez", 6},
+    {"bgtz", 7},
+    {"addi", 8},
+    {"addiu", 9},
+    {"slti", 10},
+    {"sltiu", 11},
+    {"andi", 12},
+    {"ori", 13},
+    {"xori", 14},
+    {"lui", 15},
+    {"lb", 32},
+    {"lh", 33},
+    {"lw", 35},
+    {"lbu", 36},
+    {"lhu", 37},
+    {"sb", 40},
+    {"sh", 41},
+    {"sw", 43}
+};
+
+static std::unordered_map<std::string, uint32_t> functMap = {
+    {"sll", 0},
+    {"srl", 2},
+    {"sra", 3},
+    {"sra", 3},
+    {"sllv", 4},
+    {"srlv", 6},
+    {"srav", 7},
+    {"jr", 8},
+    {"jalr", 9},
+    {"jalr", 9},
+    {"syscall", 12},
+    {"mfhi", 16},
+    {"mthi", 17},
+    {"mflo", 18},
+    {"mtlo", 19},
+    {"mult", 24},
+    {"multu", 25},
+    {"div", 26},
+    {"divu", 27},
+    {"add", 32},
+    {"addu", 33},
+    {"sub", 34},
+    {"subu", 35},
+    {"and", 36},
+    {"or", 37},
+    {"xor", 38},
+    {"nor", 39},
+    {"slt", 42},
+    {"sltu", 43}
+};
+
+uint32_t AssembleIType(const Instruction& instruction)
+{
+    if (instruction.name == "blez" || instruction.name == "bgtz") {
+        uint32_t opcode = opcodeMap[instruction.name] << 26;
+        uint32_t rs = registerMap[instruction.arguments[0]] << 21;
+        uint32_t imm = std::stoi(instruction.arguments[1]);
+
+        return opcode | rs | imm;
+    }
+
+    if (instruction.name == "lui") {
+        uint32_t opcode = opcodeMap[instruction.name] << 26;
+        uint32_t rt = registerMap[instruction.arguments[0]] << 16;
+        uint32_t imm = std::stoi(instruction.arguments[1]);
+
+        return opcode | rt | imm;
+    }
+
+
+    uint32_t opcode = opcodeMap[instruction.name] << 26;
+
+    if ((opcode >> 26) >= 32) { // loads and stores.
+
+        auto split = [](const std::string& argument) {
+            std::string rs, imm;
+            size_t i;
+
+            for (i = 0; i < argument.length() && argument[i] != '('; ++i) imm.push_back(argument[i]);
+
+            for (i++; i < argument.length() && argument[i] != ')'; ++i) rs.push_back(argument[i]);
+
+            return std::make_pair(imm, rs);
+        };
+
+        uint32_t rt = registerMap[instruction.arguments[0]] << 16;
+
+        // split the offset($register) argument
+
+        auto pair = split(instruction.arguments[1]);
+
+        uint32_t rs = registerMap[pair.second] << 21;
+
+        uint32_t imm = std::stoi(pair.first);
+
+        return opcode | rs | rt | imm;
+    }
+
+    uint32_t rs = registerMap[instruction.arguments[0]] << 21;
+    uint32_t rt = registerMap[instruction.arguments[1]] << 16;
+    uint32_t imm = std::stoi(instruction.arguments[2]);
+
+    return opcode | rs | rt | imm;
+}
+
+uint32_t AssembleRType(const Instruction& instruction)
+{
+    uint32_t opcode = 0;
+    uint32_t rd = registerMap[instruction.arguments[0]] << 11;
+    uint32_t rt = registerMap[instruction.arguments[1]] << 16;
+    uint32_t rs = registerMap[instruction.arguments[2]] << 21;
+
+    uint32_t funct = functMap[instruction.name];
+
+    return opcode | rs | rt | rd | funct;
+}
+
+std::vector<uint32_t> Assemble(std::string assembly)
 {
     using grammar = AsmGrammar<std::string::iterator>;
     using Skipper = skipper<std::string::iterator>;
@@ -191,9 +321,37 @@ int main()
     grammar g;
     Skipper sp;
 
-    std::string asd = "teste: .helicoptero voando\nsuamae aquela,puta";
-    auto res2 = qi::phrase_parse(asd.begin(), asd.end(), g, sp, asm_);
+    auto res = qi::phrase_parse(assembly.begin(), assembly.end(), g, sp, asm_);
 
+    if (!res) {
+        throw std::exception();
+    }
 
-    return 0;
+    size_t linec = 0;
+
+    std::unordered_map<std::string, size_t> labelMap;
+
+    for (const auto& line : asm_.lines) {
+        if (line.label) {
+            labelMap[line.label.get().name] = linec;
+        }
+
+        linec++;
+    }
+
+    for (const auto& line : asm_.lines) {
+
+    }
+
+    return std::vector<uint32_t>();
+}
+
+int main()
+{
+    Instruction ins;
+    ins.name = "lw";
+    ins.arguments.push_back("$a0");
+    ins.arguments.push_back("0($v0)");
+
+    return AssembleIType(ins);
 }
