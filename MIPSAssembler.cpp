@@ -301,6 +301,84 @@ uint32_t AssembleIType(const Instruction& instruction)
 
 uint32_t AssembleRType(const Instruction& instruction)
 {
+    if (instruction.name == "sll" ||
+            instruction.name == "srl" ||
+            instruction.name == "sra")
+    {
+        uint32_t opcode = 0;
+
+        uint32_t rd = registerMap[instruction.arguments[0]] << 11;
+        uint32_t rt = registerMap[instruction.arguments[1]] << 16;
+
+        uint32_t shamt = instruction.arguments[2] << 6;
+
+        return opcode | rd | rt | shamt;
+    }
+
+    if (instruction.name == "jr") {
+        uint32_t opcode = 0;
+
+        uint32_t rs = registerMap[instruction.arguments[0]] << 21;
+
+        uint32_t funct = functMap[instruction.name];
+
+        return opcode | rs | funct;
+    }
+
+    if (instruction.name == "jalr") {
+        if (instruction.arguments.size() > 1) {
+            // non-implicit jalr
+
+            uint32_t opcode = 0;
+
+            uint32_t rd = registerMap[instruction.arguments[0]] << 11;
+            uint32_t rs = registerMap[instruction.arguments[1]] << 21;
+
+            uint32_t funct = functMap[instruction.name];
+
+            return opcode | rs | rd | funct;
+        }
+
+        uint32_t opcode = 0;
+
+        uint32_t rd = 31 << 11;
+        uint32_t rs = registerMap[instruction.arguments[0]] << 21;
+
+        uint32_t funct = functMap[instruction.name];
+
+        return opcode | rs | rd | funct;
+    }
+
+    if (instruction.name == "syscall") {
+        uint32_t opcode = 0;
+        uint32_t funct = functMap[instruction.name];
+
+        return opcode | funct;
+    }
+
+    if (instruction.name == "mfhi" || instruction.name == "mflo") {
+        uint32_t opcode = 0;
+        uint32_t rd = registerMap[instruction.arguments[0]] << 11;
+        uint32_t funct = functMap[instruction.name];
+
+        return opcode | rd | funct;
+    }
+
+    if (instruction.name == "mult" ||
+            instruction.name == "multu" ||
+            instruction.name == "div" ||
+            instruction.name == "divu")
+    {
+        uint32_t opcode = 0;
+
+        uint32_t rs = registerMap[instruction.arguments[0]] << 21;
+        uint32_t rt = registerMap[instruction.arguments[1]] << 16;
+
+        uint32_t funct = functMap[instruction.name];
+
+        return opcode | rs | rt | funct;
+    }
+
     uint32_t opcode = 0;
     uint32_t rd = registerMap[instruction.arguments[0]] << 11;
     uint32_t rt = registerMap[instruction.arguments[1]] << 16;
