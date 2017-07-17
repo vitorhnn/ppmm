@@ -138,7 +138,7 @@ struct AsmGrammar : qi::grammar<Iterator, MipsAsm(), Skipper> {
                 [
                     (
                         +(
-                            ~char_(',')
+                            char_ - (char_(',') | qi::eol)
                         )
                     )
                 ] [push_back(at_c<1>(_val), _1)]
@@ -161,7 +161,7 @@ struct AsmGrammar : qi::grammar<Iterator, MipsAsm(), Skipper> {
 
         /*
          * DEBUG GARBO
-         */
+         *
         root.name("root");
         line.name("line");
         label.name("label");
@@ -173,6 +173,7 @@ struct AsmGrammar : qi::grammar<Iterator, MipsAsm(), Skipper> {
         debug(label);
         debug(directive);
         debug(instruction);
+        */
     }
 
     qi::rule<Iterator, Directive(), Skipper> directive;
@@ -272,191 +273,270 @@ static std::unordered_map<std::string, uint32_t> functMap = {
     {"sltu", 43}
 };
 
-uint32_t AssembleIType(const Instruction& instruction)
-{
-    if (instruction.name == "blez" || instruction.name == "bgtz") {
-        uint32_t opcode = opcodeMap[instruction.name] << 26;
-        uint32_t rs = registerMap[instruction.arguments[0]] << 21;
-        uint32_t imm = std::stoi(instruction.arguments[1]);
+struct Assembler {
+    std::unordered_map<std::string, size_t> labelMap;
 
-        return opcode | rs | imm;
+    std::size_t currentLine;
+
+    uint32_t textBaseAddr = 0x400000;
+
+    uint32_t ResolveLabel(const std::string& argument)
+    {
+        auto search = labelMap.find(argument);
+
+        if (search != labelMap.end()) {
+            return search->second;
+        }
+
+        uint32_t maybeAddr = std::stoull(argument);
+
+        return maybeAddr;
     }
 
-    if (instruction.name == "lui") {
-        uint32_t opcode = opcodeMap[instruction.name] << 26;
-        uint32_t rt = registerMap[instruction.arguments[0]] << 16;
-        uint32_t imm = std::stoi(instruction.arguments[1]);
+    uint32_t Label2AddressRelative(const std::string& argument)
+    {
+        // this is an awful hack, I'm aware.
 
-        return opcode | rt | imm;
+        uint32_t absolute = ResolveLabel(argument);
+
+        return absolute - currentLine;
     }
 
+    uint32_t ResolveRegister(const std::string& argument)
+    {
+        auto search = registerMap.find(argument);
 
-    uint32_t opcode = opcodeMap[instruction.name] << 26;
+        if (search != registerMap.end()) {
+            return search->second;
+        }
 
-    if ((opcode >> 26) >= 32) { // loads and stores.
+        if (argument[0] == '$') {
+            auto numStr = argument.substr(1);
+            uint32_t maybeNumber = std::stoull(numStr);
 
-        auto split = [](const std::string& argument) {
-            std::string rs, imm;
-            size_t i;
+            if (maybeNumber > 32) {
+                throw std::invalid_argument(numStr + " is not a valid MIPS register number.");
+            }
 
-            for (i = 0; i < argument.length() && argument[i] != '('; ++i) imm.push_back(argument[i]);
+            return maybeNumber;
+        }
 
-            for (i++; i < argument.length() && argument[i] != ')'; ++i) rs.push_back(argument[i]);
+        throw std::invalid_argument("Couldn't resolve " + argument);
+    }
 
-            return std::make_pair(imm, rs);
-        };
+    uint32_t AssembleIType(const Instruction& instruction)
+    {
+        if (instruction.name == "blez" || instruction.name == "bgtz") {
+            uint32_t opcode = opcodeMap[instruction.name] << 26;
+            uint32_t rs = ResolveRegister(instruction.arguments[0]) << 21;
+            uint32_t imm = Label2AddressRelative(instruction.arguments[1]);
 
-        uint32_t rt = registerMap[instruction.arguments[0]] << 16;
+            return opcode | rs | imm;
+        }
 
-        // split the offset($register) argument
+        if (instruction.name == "lui") {
+            uint32_t opcode = opcodeMap[instruction.name] << 26;
+            uint32_t rt = ResolveRegister(instruction.arguments[0]) << 16;
+            uint32_t imm = std::stoull(instruction.arguments[1]);
 
-        auto pair = split(instruction.arguments[1]);
+            return opcode | rt | imm;
+        }
 
-        uint32_t rs = registerMap[pair.second] << 21;
 
-        uint32_t imm = std::stoi(pair.first);
+        uint32_t opcode = opcodeMap[instruction.name] << 26;
+
+        if ((opcode >> 26) >= 32) { // loads and stores.
+            auto split = [](const std::string& argument) {
+                std::string rs, imm;
+                size_t i;
+
+                for (i = 0; i < argument.length() && argument[i] != '('; ++i) imm.push_back(argument[i]);
+
+                for (i++; i < argument.length() && argument[i] != ')'; ++i) rs.push_back(argument[i]);
+
+                return std::make_pair(imm, rs);
+            };
+
+            uint32_t rt = ResolveRegister(instruction.arguments[0]) << 16;
+
+            // split the offset($register) argument
+
+            auto pair = split(instruction.arguments[1]);
+
+            uint32_t rs = ResolveRegister(pair.second) << 21;
+
+            uint32_t imm = std::stoull(pair.first);
+
+            return opcode | rs | rt | imm;
+        }
+
+        uint32_t rs = ResolveRegister(instruction.arguments[0]) << 21;
+        uint32_t rt = ResolveRegister(instruction.arguments[1]) << 16;
+        uint32_t imm = std::stoull(instruction.arguments[2]);
 
         return opcode | rs | rt | imm;
     }
 
-    uint32_t rs = registerMap[instruction.arguments[0]] << 21;
-    uint32_t rt = registerMap[instruction.arguments[1]] << 16;
-    uint32_t imm = std::stoi(instruction.arguments[2]);
-
-    return opcode | rs | rt | imm;
-}
-
-uint32_t AssembleRType(const Instruction& instruction)
-{
-    if (instruction.name == "sll" ||
-            instruction.name == "srl" ||
-            instruction.name == "sra")
+    uint32_t AssembleRType(const Instruction& instruction)
     {
-        uint32_t opcode = 0;
-
-        uint32_t rd = registerMap[instruction.arguments[0]] << 11;
-        uint32_t rt = registerMap[instruction.arguments[1]] << 16;
-
-        uint32_t shamt = instruction.arguments[2] << 6;
-
-        return opcode | rd | rt | shamt;
-    }
-
-    if (instruction.name == "jr") {
-        uint32_t opcode = 0;
-
-        uint32_t rs = registerMap[instruction.arguments[0]] << 21;
-
-        uint32_t funct = functMap[instruction.name];
-
-        return opcode | rs | funct;
-    }
-
-    if (instruction.name == "jalr") {
-        if (instruction.arguments.size() > 1) {
-            // non-implicit jalr
-
+        if (instruction.name == "sll" ||
+                instruction.name == "srl" ||
+                instruction.name == "sra")
+        {
             uint32_t opcode = 0;
 
-            uint32_t rd = registerMap[instruction.arguments[0]] << 11;
-            uint32_t rs = registerMap[instruction.arguments[1]] << 21;
+            uint32_t rd = ResolveRegister(instruction.arguments[0]) << 11;
+            uint32_t rt = ResolveRegister(instruction.arguments[1]) << 16;
+
+            uint32_t shamt = std::stoull(instruction.arguments[2]) << 6;
+
+            uint32_t funct = functMap[instruction.name];
+
+            return opcode | rd | rt | shamt | funct;
+        }
+
+        if (instruction.name == "jr") {
+            uint32_t opcode = 0;
+
+            uint32_t rs = ResolveRegister(instruction.arguments[0]) << 21;
+
+            uint32_t funct = functMap[instruction.name];
+
+            return opcode | rs | funct;
+        }
+
+        if (instruction.name == "jalr") {
+            uint32_t opcode = 0;
+
+            uint32_t rd = 31 << 11;
+
+            if (instruction.arguments.size() > 1) {
+                rd = ResolveRegister(instruction.arguments[0]) << 11;
+            }
+
+            uint32_t rs = ResolveRegister(instruction.arguments[0]) << 21;
 
             uint32_t funct = functMap[instruction.name];
 
             return opcode | rs | rd | funct;
         }
 
-        uint32_t opcode = 0;
+        if (instruction.name == "syscall") {
+            uint32_t opcode = 0;
+            uint32_t funct = functMap[instruction.name];
 
-        uint32_t rd = 31 << 11;
-        uint32_t rs = registerMap[instruction.arguments[0]] << 21;
-
-        uint32_t funct = functMap[instruction.name];
-
-        return opcode | rs | rd | funct;
-    }
-
-    if (instruction.name == "syscall") {
-        uint32_t opcode = 0;
-        uint32_t funct = functMap[instruction.name];
-
-        return opcode | funct;
-    }
-
-    if (instruction.name == "mfhi" || instruction.name == "mflo") {
-        uint32_t opcode = 0;
-        uint32_t rd = registerMap[instruction.arguments[0]] << 11;
-        uint32_t funct = functMap[instruction.name];
-
-        return opcode | rd | funct;
-    }
-
-    if (instruction.name == "mult" ||
-            instruction.name == "multu" ||
-            instruction.name == "div" ||
-            instruction.name == "divu")
-    {
-        uint32_t opcode = 0;
-
-        uint32_t rs = registerMap[instruction.arguments[0]] << 21;
-        uint32_t rt = registerMap[instruction.arguments[1]] << 16;
-
-        uint32_t funct = functMap[instruction.name];
-
-        return opcode | rs | rt | funct;
-    }
-
-    uint32_t opcode = 0;
-    uint32_t rd = registerMap[instruction.arguments[0]] << 11;
-    uint32_t rt = registerMap[instruction.arguments[1]] << 16;
-    uint32_t rs = registerMap[instruction.arguments[2]] << 21;
-
-    uint32_t funct = functMap[instruction.name];
-
-    return opcode | rs | rt | rd | funct;
-}
-
-std::vector<uint32_t> Assemble(std::string assembly)
-{
-    using grammar = AsmGrammar<std::string::iterator>;
-    using Skipper = skipper<std::string::iterator>;
-
-    MipsAsm asm_;
-
-    grammar g;
-    Skipper sp;
-
-    auto res = qi::phrase_parse(assembly.begin(), assembly.end(), g, sp, asm_);
-
-    if (!res) {
-        throw std::exception();
-    }
-
-    size_t linec = 0;
-
-    std::unordered_map<std::string, size_t> labelMap;
-
-    for (const auto& line : asm_.lines) {
-        if (line.label) {
-            labelMap[line.label.get().name] = linec;
+            return opcode | funct;
         }
 
-        linec++;
+        if (instruction.name == "mfhi" || instruction.name == "mflo") {
+            uint32_t opcode = 0;
+            uint32_t rd = ResolveRegister(instruction.arguments[0]) << 11;
+            uint32_t funct = functMap[instruction.name];
+
+            return opcode | rd | funct;
+        }
+
+        if (instruction.name == "mult" ||
+                instruction.name == "multu" ||
+                instruction.name == "div" ||
+                instruction.name == "divu")
+        {
+            uint32_t opcode = 0;
+
+            uint32_t rs = ResolveRegister(instruction.arguments[0]) << 21;
+            uint32_t rt = ResolveRegister(instruction.arguments[1]) << 16;
+
+            uint32_t funct = functMap[instruction.name];
+
+            return opcode | rs | rt | funct;
+        }
+
+        uint32_t opcode = 0;
+        uint32_t rd = ResolveRegister(instruction.arguments[0]) << 11;
+        uint32_t rt = ResolveRegister(instruction.arguments[1]) << 16;
+        uint32_t rs = ResolveRegister(instruction.arguments[2]) << 21;
+
+        uint32_t funct = functMap[instruction.name];
+
+        return opcode | rs | rt | rd | funct;
     }
 
-    for (const auto& line : asm_.lines) {
+    uint32_t AssembleJType(const Instruction& instruction)
+    {
+        uint32_t opcode = (instruction.name == "j" ? 2 : 3) << 26;
 
+        uint32_t labelAddr = textBaseAddr + ResolveLabel(instruction.arguments[0]);
+
+        return opcode | (labelAddr >> 2);
     }
 
-    return std::vector<uint32_t>();
-}
+    uint32_t Dispatch(const Instruction& instruction)
+    {
+        if (opcodeMap.find(instruction.name) != opcodeMap.end()) {
+            return AssembleIType(instruction);
+        }
+
+        if (functMap.find(instruction.name) != functMap.end()) {
+            return AssembleRType(instruction);
+        }
+
+        if (instruction.name == "j" || instruction.name == "jal") {
+            return AssembleJType(instruction);
+        }
+
+        throw std::invalid_argument(instruction.name + " is not supported by this assembler");
+    }
+
+public:
+    std::vector<uint32_t> Assemble(std::string assembly)
+    {
+        using grammar = AsmGrammar<std::string::iterator>;
+        using Skipper = skipper<std::string::iterator>;
+
+        MipsAsm asm_;
+
+        grammar g;
+        Skipper sp;
+
+        auto res = qi::phrase_parse(assembly.begin(), assembly.end(), g, sp, asm_);
+
+        if (!res) {
+            throw std::invalid_argument("Unable to parse the input.");
+        }
+
+        currentLine = 0;
+
+        for (const auto& line : asm_.lines) {
+            if (line.label) {
+                labelMap[line.label.get().name] = currentLine;
+            }
+
+            currentLine++;
+        }
+
+        currentLine = 0;
+
+        auto output = std::vector<uint32_t>();
+        for (const auto& line : asm_.lines) {
+            if (const Instruction* ins = boost::get<Instruction>(&line.IoD)) {
+                output.push_back(Dispatch(*ins));
+            }
+            currentLine++;
+        }
+
+        return output;
+    }
+};
 
 int main()
 {
-    Instruction ins;
-    ins.name = "lw";
-    ins.arguments.push_back("$a0");
-    ins.arguments.push_back("0($v0)");
+    Assembler asmer;
 
-    return AssembleIType(ins);
+    auto out = asmer.Assemble("nothing: add $0, $0, $0\nj nothing");
+
+    for (const auto& line : out) {
+        std::cout << line << "\n";
+    }
+
+    return 0;
 }
