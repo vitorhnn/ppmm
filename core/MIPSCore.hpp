@@ -32,6 +32,10 @@ struct MIPSCore {
 private:
     u32 instruction;
 
+    void SLL();
+
+    void SRL();
+
     void JR();
 
     void SYSCALL();

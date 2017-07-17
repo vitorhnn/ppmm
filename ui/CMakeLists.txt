@@ -12,7 +12,7 @@ set(CMAKE_AUTOUIC ON)
 find_package(Qt5 COMPONENTS Core Widgets REQUIRED)
 
 
-add_executable(qtppmm mainwindow.cpp main.cpp about.cpp images.qrc)
+add_executable(qtppmm mainwindow.cpp main.cpp about.cpp images.qrc mainwindow.ui)
 
 target_link_libraries(qtppmm mipscore)
 

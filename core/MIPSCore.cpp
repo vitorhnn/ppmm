@@ -35,6 +35,12 @@ bool MIPSCore::Cycle()
             // R instructions
             u32 funct = (instruction & 0x3F);
             switch (funct) {
+                case 0x00:
+                    SLL();
+                    break;
+                case 0x02:
+                    SRL();
+                    break;
                 case 0x08:
                     JR();
                     break;
@@ -143,6 +149,24 @@ bool MIPSCore::Cycle()
     gpr[0] = 0; // $0 is ALWAYS zero. (at least to an external viewer)
 
     return true;
+}
+
+void MIPSCore::SLL()
+{
+    DECODE_R;
+
+    gpr[rd] = gpr[rt] << shamt;
+
+    pc++;
+}
+
+void MIPSCore::SRL()
+{
+    DECODE_R;
+
+    gpr[rd] = gpr[rt] >> shamt;
+
+    pc++;
 }
 
 void MIPSCore::JR()
