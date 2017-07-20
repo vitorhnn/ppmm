@@ -1,9 +1,11 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "about.h"
+#include "../assembler/MIPSAssembler.hpp"
 #include <cstdio>
 #include <QFile>
 #include <QTextStream>
+#include <QMessageBox>
 #include <QFileDialog>
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -69,21 +71,18 @@ void MainWindow::on_loadButton_clicked()
 
 void MainWindow::on_assembleButton_clicked()
 {
-
-//    std::vector<uint32_t> assembly = Assemble(ui->textEdit->toPlainText().toStdString());
-
-    FILE *file = fopen("dump", "rb");
-    if (file == nullptr){
-        ui->OutputText->insertPlainText("Nenhum arquivo carregado.\n");
-        return;
+    for (auto& reg : core.gpr) {
+        // reset the register bank
+        reg = 0;
     }
 
-    u32 i = core.pc = 0x400000/4,
-            byte = 0;
-    while(fread(&byte, sizeof(u32), 1, file) != 0){
-        core.memory[i] = byte;
-        i++;
+    try {
+        core.memory = Assemble(ui->textEdit->toPlainText().toStdString().append("\n"));
+    } catch (const std::invalid_argument& ex) {
+        QMessageBox::critical(this, "Invalid argument", QString(ex.what()));
     }
+
+    core.pc = 0x400000 / 4;
 }
 
 void MainWindow::on_runButton_clicked()

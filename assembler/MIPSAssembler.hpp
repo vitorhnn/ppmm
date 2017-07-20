@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include <vector>
+#include <unordered_map>
 #include <cstdint>
 
-std::vector<uint32_t> Assemble(std::string assembly);
+std::unordered_map<uint32_t, uint32_t> Assemble(std::string assembly);

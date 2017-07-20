@@ -147,7 +147,7 @@ struct AsmGrammar : qi::grammar<Iterator, MipsAsm(), Skipper> {
 
         label =
             *(
-                ~char_(':')
+                char_ - (char_(':') | qi::eol)
             )
             >> ':';
 
@@ -501,12 +501,12 @@ struct Assembler {
     std::vector<uint32_t> DispatchDirective(const Directive& directive)
     {
         if (directive.name == "data") {
-            currentSection == Section::DATA;
+            currentSection = Section::DATA;
             return std::vector<uint32_t>();
         }
 
         if (directive.name == "text") {
-            currentSection == Section::TEXT;
+            currentSection = Section::TEXT;
             return std::vector<uint32_t>();
         }
 
@@ -582,3 +582,11 @@ public:
     }
 };
 
+std::unordered_map<uint32_t, uint32_t> Assemble(std::string assembly)
+{
+    // shitty wrapper function because I'm lazy
+
+    Assembler asmer;
+
+    return asmer.Assemble(assembly);
+}
