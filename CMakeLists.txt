@@ -12,6 +12,7 @@ add_executable(ppmm
     main.cpp
     MIPSException.hpp
     MIPSAssembler.hpp
-    MIPSAssembler.cpp)
+    MIPSAssembler.cpp
+)
 
 target_include_directories(ppmm PUBLIC ${Boost_INCLUDE_DIRS})

@@ -52,7 +52,7 @@ BOOST_FUSION_ADAPT_STRUCT(
         (std::string, name)
 )
 
-using Instruction_or_Directive = boost::variant<Instruction, Directive>;
+using Instruction_or_Directive = boost::variant<boost::blank, Instruction, Directive>;
 // A line. Contains an optional label and either an instruction or a directive.
 struct Line {
     boost::optional<Label> label;
@@ -126,8 +126,8 @@ struct AsmGrammar : qi::grammar<Iterator, MipsAsm(), Skipper> {
                 [
                     (
                         +(
-                            ~char_(' ')
-                        )
+                            char_ - (char_(' ') | qi::eol)
+                         )
                     )
                 ] [at_c<0>(_val) = _1]
                 >> ' '
@@ -153,15 +153,15 @@ struct AsmGrammar : qi::grammar<Iterator, MipsAsm(), Skipper> {
 
         line =
             -label [at_c<0>(_val) = _1]
-            >> (directive | instruction) [at_c<1>(_val) = _1]
-            >> -qi::eol;
+            >> -(directive | instruction) [at_c<1>(_val) = _1]
+            >> qi::eol;
 
         root =
             +(line) [push_back(at_c<0>(_val), _1)];
 
         /*
          * DEBUG GARBO
-         *
+         */
         root.name("root");
         line.name("line");
         label.name("label");
@@ -173,7 +173,7 @@ struct AsmGrammar : qi::grammar<Iterator, MipsAsm(), Skipper> {
         debug(label);
         debug(directive);
         debug(instruction);
-        */
+//        */
     }
 
     qi::rule<Iterator, Directive(), Skipper> directive;
@@ -273,12 +273,23 @@ static std::unordered_map<std::string, uint32_t> functMap = {
     {"sltu", 43}
 };
 
+enum class Section {
+    DATA,
+    TEXT
+};
+
 struct Assembler {
     std::unordered_map<std::string, size_t> labelMap;
 
-    std::size_t currentLine;
+    Section currentSection = Section::TEXT;
 
-    uint32_t textBaseAddr = 0x400000;
+    const uint32_t baseTextAddr = 0x400000 / 4;
+
+    uint32_t currentTextAddr = baseTextAddr;
+
+    const uint32_t baseDataAddr = 0x10010000 / 4;
+
+    uint32_t currentDataAddr = baseDataAddr;
 
     uint32_t ResolveLabel(const std::string& argument)
     {
@@ -299,7 +310,7 @@ struct Assembler {
 
         uint32_t absolute = ResolveLabel(argument);
 
-        return absolute - currentLine;
+        return absolute - currentTextAddr;
     }
 
     uint32_t ResolveRegister(const std::string& argument)
@@ -465,12 +476,12 @@ struct Assembler {
     {
         uint32_t opcode = (instruction.name == "j" ? 2 : 3) << 26;
 
-        uint32_t labelAddr = textBaseAddr + ResolveLabel(instruction.arguments[0]);
+        uint32_t labelAddr = ResolveLabel(instruction.arguments[0]);
 
         return opcode | (labelAddr >> 2);
     }
 
-    uint32_t Dispatch(const Instruction& instruction)
+    uint32_t DispatchInstruction(const Instruction& instruction)
     {
         if (opcodeMap.find(instruction.name) != opcodeMap.end()) {
             return AssembleIType(instruction);
@@ -487,8 +498,44 @@ struct Assembler {
         throw std::invalid_argument(instruction.name + " is not supported by this assembler");
     }
 
+    std::vector<uint32_t> DispatchDirective(const Directive& directive)
+    {
+        if (directive.name == "data") {
+            currentSection == Section::DATA;
+            return std::vector<uint32_t>();
+        }
+
+        if (directive.name == "text") {
+            currentSection == Section::TEXT;
+            return std::vector<uint32_t>();
+        }
+
+        if (directive.name == "space") {
+            if (currentSection == Section::TEXT) {
+                throw std::invalid_argument("Can't use space while in text section");
+            }
+
+            uint32_t bytes = std::stoull(directive.name);
+
+            return std::vector<uint32_t>(bytes, 0);
+        }
+
+        throw std::invalid_argument("Directive " + directive.name + " is not supported by this assembler");
+    }
+
+    void AppendMem(std::unordered_map<uint32_t, uint32_t>& memory, const std::vector<uint32_t>& words)
+    {
+        // this not the best thing, because I'm padding where I don't really need to
+        // but all of this is a giant hack anyway
+        if (currentSection == Section::DATA) {
+            for (std::size_t i = 0; i < words.size(); ++i, ++currentDataAddr) {
+                memory[currentDataAddr / 4] = words[i];
+            }
+        }
+    }
+
 public:
-    std::vector<uint32_t> Assemble(std::string assembly)
+    std::unordered_map<uint32_t, uint32_t> Assemble(std::string assembly)
     {
         using grammar = AsmGrammar<std::string::iterator>;
         using Skipper = skipper<std::string::iterator>;
@@ -504,39 +551,34 @@ public:
             throw std::invalid_argument("Unable to parse the input.");
         }
 
-        currentLine = 0;
-
         for (const auto& line : asm_.lines) {
             if (line.label) {
-                labelMap[line.label.get().name] = currentLine;
+                labelMap[line.label.get().name] = currentSection == Section::DATA ? currentDataAddr : currentTextAddr;
             }
 
-            currentLine++;
+            if (line.IoD.which() != 0) {
+                if (currentSection == Section::DATA) {
+                    currentDataAddr++;;
+                } else if (currentSection == Section::TEXT) {
+                    currentTextAddr++;
+                }
+            }
         }
 
-        currentLine = 0;
+        currentTextAddr = baseTextAddr;
+        currentDataAddr = baseDataAddr;
 
-        auto output = std::vector<uint32_t>();
+        auto output = std::unordered_map<uint32_t, uint32_t>();
         for (const auto& line : asm_.lines) {
-            if (const Instruction* ins = boost::get<Instruction>(&line.IoD)) {
-                output.push_back(Dispatch(*ins));
+            if (const Directive* dir = boost::get<Directive>(&line.IoD)) {
+                AppendMem(output, DispatchDirective(*dir));
+            } else if (const Instruction* ins = boost::get<Instruction>(&line.IoD)) {
+                output[currentTextAddr] = DispatchInstruction(*ins);
+                currentTextAddr++;
             }
-            currentLine++;
         }
 
         return output;
     }
 };
 
-int main()
-{
-    Assembler asmer;
-
-    auto out = asmer.Assemble("nothing: add $0, $0, $0\nj nothing");
-
-    for (const auto& line : out) {
-        std::cout << line << "\n";
-    }
-
-    return 0;
-}
