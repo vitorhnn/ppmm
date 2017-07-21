@@ -299,7 +299,7 @@ struct Assembler {
             return search->second;
         }
 
-        uint32_t maybeAddr = std::stoull(argument);
+        uint32_t maybeAddr = std::stoi(argument);
 
         return maybeAddr;
     }
@@ -310,7 +310,7 @@ struct Assembler {
 
         uint32_t absolute = ResolveLabel(argument);
 
-        return absolute - currentTextAddr;
+        return absolute - currentTextAddr - 1;
     }
 
     uint32_t ResolveRegister(const std::string& argument)
@@ -323,7 +323,7 @@ struct Assembler {
 
         if (argument[0] == '$') {
             auto numStr = argument.substr(1);
-            uint32_t maybeNumber = std::stoull(numStr);
+            uint32_t maybeNumber = std::stoi(numStr);
 
             if (maybeNumber > 32) {
                 throw std::invalid_argument(numStr + " is not a valid MIPS register number.");
@@ -340,15 +340,24 @@ struct Assembler {
         if (instruction.name == "blez" || instruction.name == "bgtz") {
             uint32_t opcode = opcodeMap[instruction.name] << 26;
             uint32_t rs = ResolveRegister(instruction.arguments[0]) << 21;
-            uint32_t imm = Label2AddressRelative(instruction.arguments[1]);
+            uint16_t imm = Label2AddressRelative(instruction.arguments[1]);
 
             return opcode | rs | imm;
+        }
+
+        if (instruction.name == "beq" || instruction.name == "bne") {
+            uint32_t opcode = opcodeMap[instruction.name] << 26;
+            uint32_t rs = ResolveRegister(instruction.arguments[0]) << 21;
+            uint32_t rt = ResolveRegister(instruction.arguments[1]) << 16;
+            uint16_t imm = Label2AddressRelative(instruction.arguments[2]);
+
+            return opcode | rs | rt | imm;
         }
 
         if (instruction.name == "lui") {
             uint32_t opcode = opcodeMap[instruction.name] << 26;
             uint32_t rt = ResolveRegister(instruction.arguments[0]) << 16;
-            uint32_t imm = std::stoull(instruction.arguments[1]);
+            uint16_t imm = std::stoi(instruction.arguments[1]);
 
             return opcode | rt | imm;
         }
@@ -376,14 +385,14 @@ struct Assembler {
 
             uint32_t rs = ResolveRegister(pair.second) << 21;
 
-            uint32_t imm = std::stoull(pair.first);
+            uint16_t imm = std::stoi(pair.first);
 
             return opcode | rs | rt | imm;
         }
 
-        uint32_t rs = ResolveRegister(instruction.arguments[0]) << 21;
-        uint32_t rt = ResolveRegister(instruction.arguments[1]) << 16;
-        uint32_t imm = std::stoull(instruction.arguments[2]);
+        uint32_t rt = ResolveRegister(instruction.arguments[0]) << 16;
+        uint32_t rs = ResolveRegister(instruction.arguments[1]) << 21;
+        uint16_t imm = std::stoul(instruction.arguments[2]);
 
         return opcode | rs | rt | imm;
     }
@@ -399,7 +408,7 @@ struct Assembler {
             uint32_t rd = ResolveRegister(instruction.arguments[0]) << 11;
             uint32_t rt = ResolveRegister(instruction.arguments[1]) << 16;
 
-            uint32_t shamt = std::stoull(instruction.arguments[2]) << 6;
+            uint32_t shamt = std::stoi(instruction.arguments[2]) << 6;
 
             uint32_t funct = functMap[instruction.name];
 
@@ -515,7 +524,7 @@ struct Assembler {
                 throw std::invalid_argument("Can't use space while in text section");
             }
 
-            uint32_t bytes = std::stoull(directive.name);
+            uint32_t bytes = std::stoi(directive.name);
 
             return std::vector<uint32_t>(bytes, 0);
         }
