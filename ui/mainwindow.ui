@@ -21,7 +21,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>:/images/icon100.png</normaloff>:/images/icon100.png</iconset>
+    <normaloff>images/icon100.png</normaloff>images/icon100.png</iconset>
   </property>
   <property name="iconSize">
    <size>
@@ -138,7 +138,7 @@
        </size>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="editTab">
        <property name="sizePolicy">
@@ -165,7 +165,39 @@
          <widget class="QTextBrowser" name="codeBrowser"/>
         </item>
         <item>
-         <widget class="QTableWidget" name="memTable"/>
+         <widget class="QTableWidget" name="memTable">
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <attribute name="horizontalHeaderDefaultSectionSize">
+           <number>195</number>
+          </attribute>
+          <attribute name="horizontalHeaderMinimumSectionSize">
+           <number>195</number>
+          </attribute>
+          <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+           <bool>false</bool>
+          </attribute>
+          <attribute name="horizontalHeaderStretchLastSection">
+           <bool>true</bool>
+          </attribute>
+          <attribute name="verticalHeaderVisible">
+           <bool>false</bool>
+          </attribute>
+          <column>
+           <property name="text">
+            <string>Endereço</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Valor</string>
+           </property>
+          </column>
+         </widget>
         </item>
        </layout>
       </widget>
@@ -173,6 +205,12 @@
     </item>
     <item row="1" column="1" rowspan="2">
      <widget class="QTableWidget" name="registersTable">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="minimumSize">
        <size>
         <width>180</width>
@@ -181,15 +219,24 @@
       </property>
       <property name="maximumSize">
        <size>
-        <width>200</width>
+        <width>300</width>
         <height>16777215</height>
        </size>
       </property>
+      <property name="sizeIncrement">
+       <size>
+        <width>0</width>
+        <height>0</height>
+       </size>
+      </property>
       <attribute name="horizontalHeaderDefaultSectionSize">
-       <number>88</number>
+       <number>80</number>
       </attribute>
       <attribute name="horizontalHeaderMinimumSectionSize">
-       <number>10</number>
+       <number>50</number>
+      </attribute>
+      <attribute name="horizontalHeaderStretchLastSection">
+       <bool>true</bool>
       </attribute>
       <attribute name="verticalHeaderVisible">
        <bool>false</bool>
@@ -199,6 +246,9 @@
       </attribute>
       <attribute name="verticalHeaderMinimumSectionSize">
        <number>18</number>
+      </attribute>
+      <attribute name="verticalHeaderStretchLastSection">
+       <bool>false</bool>
       </attribute>
       <row>
        <property name="text">

@@ -1,11 +1,11 @@
 <RCC>
     <qresource prefix="/">
         <file>images/Assemble22.png</file>
+        <file>images/icon22.png</file>
+        <file>images/icon100.png</file>
         <file>images/Open22.png</file>
         <file>images/Play22.png</file>
         <file>images/Save22.png</file>
         <file>images/StepForward22.png</file>
-        <file>images/icon22.png</file>
-        <file>images/icon100.png</file>
     </qresource>
 </RCC>

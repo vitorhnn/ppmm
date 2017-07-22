@@ -14,14 +14,6 @@ MainWindow::MainWindow(QWidget *parent) :
     core()
 {
     ui->setupUi(this);
-
-    ui->registersTable->setColumnWidth(0, 50);
-    ui->registersTable->setColumnWidth(1, 50);
-    ui->registersTable->setColumnWidth(2, 80);
-
-    QStringList tableTitles;
-    tableTitles << "Name" << "Number" << "Value";
-    ui->registersTable->setHorizontalHeaderLabels(tableTitles);
 }
 
 MainWindow::~MainWindow()
@@ -83,11 +75,15 @@ void MainWindow::on_assembleButton_clicked()
     }
 
     core.pc = 0x400000 / 4;
+
+    ui->codeBrowser->setPlainText(ui->textEdit->toPlainText());
 }
 
 void MainWindow::on_runButton_clicked()
 {
-    while(core.Cycle());
+    while(core.Cycle()){
+        refreshMemoryTable();
+    }
 
     for (size_t i = 0; i < 32; ++i) {
         ui->registersTable->setItem(i,2,new QTableWidgetItem(QString::number(core.gpr[i])));
@@ -97,6 +93,7 @@ void MainWindow::on_runButton_clicked()
 void MainWindow::on_stepButton_clicked()
 {
     core.Cycle();
+    refreshMemoryTable();
 
     for (size_t i = 0; i < 32; ++i) {
         ui->registersTable->setItem(i,2,new QTableWidgetItem(QString::number(core.gpr[i])));
@@ -106,4 +103,22 @@ void MainWindow::on_stepButton_clicked()
 void MainWindow::on_pushButton_clicked()
 {
     ui->OutputText->setText("");
+}
+
+void MainWindow::refreshMemoryTable(){
+
+    std::vector<std::pair<uint32_t, uint32_t>> memVec(core.memory.begin(), core.memory.end());
+
+    std::sort(memVec.begin(), memVec.end(),[] (const auto& a, const auto& b) { return a.first < b.first; });
+
+    ui->memTable->setRowCount(memVec.size());
+
+    int i = 0;
+
+    for(const auto & pair : memVec){
+        ui->memTable->setItem(i,0,new QTableWidgetItem(QString::number(pair.first)));
+        ui->memTable->setItem(i,1,new QTableWidgetItem(QString::number(pair.second)));
+        i++;
+
+    }
 }

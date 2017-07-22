@@ -33,6 +33,8 @@ private slots:
     void on_assembleButton_clicked();
 
     void on_pushButton_clicked();
+
+    void refreshMemoryTable();
 private:
     Ui::MainWindow *ui;
 
