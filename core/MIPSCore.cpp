@@ -14,9 +14,23 @@ MIPSCore::MIPSCore() :
     gpr({}),
     hi(0),
     lo(0),
-    pc(0),
+    pc(0x400000 / 4),
     memory()
 {
+    gpr[28] = 0x10008000; // $gp;
+    gpr[29] = 0x7FFFEFFC; // $sp
+}
+
+void MIPSCore::Reset()
+{
+    gpr.fill(0);
+
+    gpr[28] = 0x10008000; // $gp;
+    gpr[29] = 0x7FFFEFFC; // $sp
+
+    hi = 0;
+    lo = 0;
+    pc = 0x400000 / 4;
 }
 
 bool MIPSCore::Cycle()
@@ -464,7 +478,7 @@ void MIPSCore::LB()//
 
     s32 value = static_cast<s32>(static_cast<s8>(byte));
 
-    gpr[rs] = value;
+    gpr[rt] = value;
 
     pc++;
 }

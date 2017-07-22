@@ -29,6 +29,8 @@ struct MIPSCore {
 
     bool Cycle();
 
+    void Reset();
+
 private:
     u32 instruction;
 

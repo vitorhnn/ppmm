@@ -63,20 +63,20 @@ void MainWindow::on_loadButton_clicked()
 
 void MainWindow::on_assembleButton_clicked()
 {
-    for (auto& reg : core.gpr) {
-        // reset the register bank
-        reg = 0;
-    }
-
     try {
         core.memory = Assemble(ui->textEdit->toPlainText().toStdString().append("\n"));
     } catch (const std::invalid_argument& ex) {
         QMessageBox::critical(this, "Invalid argument", QString(ex.what()));
     }
 
-    core.pc = 0x400000 / 4;
 
     ui->codeBrowser->setPlainText(ui->textEdit->toPlainText());
+
+    core.Reset();
+
+    for (size_t i = 0; i < 32; ++i) {
+        ui->registersTable->setItem(i,2,new QTableWidgetItem(QString::number(core.gpr[i])));
+    }
 }
 
 void MainWindow::on_runButton_clicked()
