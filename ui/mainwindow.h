@@ -32,10 +32,7 @@ private slots:
 
     void on_assembleButton_clicked();
 
-    void on_pushButton_clicked();
-
     void on_actionAbout_Qt_triggered();
-
 private:
     Ui::MainWindow *ui;
 

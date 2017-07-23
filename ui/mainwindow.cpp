@@ -100,11 +100,6 @@ void MainWindow::on_stepButton_clicked()
     }
 }
 
-void MainWindow::on_pushButton_clicked()
-{
-    ui->OutputText->setText("");
-}
-
 void MainWindow::refreshMemoryTable()
 {
     std::vector<std::pair<uint32_t, uint32_t>> memVec(core.memory.begin(), core.memory.end());
