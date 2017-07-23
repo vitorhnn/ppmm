@@ -5,3 +5,6 @@ A pretty poor MIPS assembler and interpreter, developed as the project for the C
 
 Um montador e interpretador de MIPS bem ruim, desenvolvido para o curso de Arquitetura de Computadores da Universidade Federal Rural do Rio de Janeiro.
 
+Integrantes:
+ * Victor Hermann Chiletto
+ * Márcio Medeiros

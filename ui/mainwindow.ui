@@ -20,8 +20,8 @@
    <string>PPMM</string>
   </property>
   <property name="windowIcon">
-   <iconset>
-    <normaloff>images/icon100.png</normaloff>images/icon100.png</iconset>
+   <iconset resource="images.qrc">
+    <normaloff>:/images/icon100.png</normaloff>:/images/icon100.png</iconset>
   </property>
   <property name="iconSize">
    <size>
