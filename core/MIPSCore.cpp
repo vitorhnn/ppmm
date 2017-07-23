@@ -10,12 +10,13 @@
                         rd = (instruction >> 11) & 0x1F, \
                         shamt = (instruction >> 6) & 0x1F;
 
-MIPSCore::MIPSCore() :
+MIPSCore::MIPSCore(OutputSink* sink) :
     gpr({}),
     hi(0),
     lo(0),
     pc(0x400000 / 4),
-    memory()
+    memory(),
+    sink(sink)
 {
     gpr[28] = 0x10008000; // $gp;
     gpr[29] = 0x7FFFEFFC; // $sp
@@ -196,7 +197,8 @@ void MIPSCore::SYSCALL()
 
     switch (gpr[2]) {
         case 1: {
-            printf("%d\n", gpr[4]);
+//            printf("%d\n", gpr[4]);
+            sink->Print(std::to_string(gpr[4]));
             break;
         }
         /*case 4: {

@@ -9,7 +9,7 @@ namespace Ui {
 class MainWindow;
 }
 
-class MainWindow : public QMainWindow
+class MainWindow : public QMainWindow, OutputSink
 {
     Q_OBJECT
 
@@ -34,9 +34,14 @@ private slots:
 
     void on_pushButton_clicked();
 
-    void refreshMemoryTable();
+    void on_actionAbout_Qt_triggered();
+
 private:
     Ui::MainWindow *ui;
+
+    void refreshMemoryTable();
+
+    void Print(std::string line) override;
 
     MIPSCore core;
 };

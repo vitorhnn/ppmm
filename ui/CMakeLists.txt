@@ -15,6 +15,4 @@ find_package(Qt5 COMPONENTS Core Widgets REQUIRED)
 
 add_executable(qtppmm mainwindow.cpp main.cpp about.cpp images.qrc mainwindow.ui)
 
-target_link_libraries(qtppmm mipscore mipsassembler)
-
-qt5_use_modules(qtppmm Widgets)
+target_link_libraries(qtppmm mipscore mipsassembler Qt5::Core Qt5::Widgets)

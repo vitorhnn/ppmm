@@ -15,6 +15,11 @@ using s32 = int32_t;
 using s16 = int16_t;
 using s8 = int8_t;
 
+struct OutputSink {
+    virtual ~OutputSink() {}
+
+    virtual void Print(std::string line) = 0;
+};
 
 struct MIPSCore {
     std::array<u32, 32> gpr;
@@ -25,13 +30,15 @@ struct MIPSCore {
 
     std::unordered_map<u32, u32> memory;
 
-    MIPSCore();
+    MIPSCore(OutputSink* sink);
 
     bool Cycle();
 
     void Reset();
 
 private:
+    OutputSink* sink;
+
     u32 instruction;
 
     void SLL();

@@ -161,7 +161,6 @@ struct AsmGrammar : qi::grammar<Iterator, MipsAsm(), Skipper> {
 
         /*
          * DEBUG GARBO
-         */
         root.name("root");
         line.name("line");
         label.name("label");
@@ -247,7 +246,7 @@ static std::unordered_map<std::string, uint32_t> functMap = {
     {"jr", 8},
     {"syscall", 12},
     {"mfhi", 16},
-    {"mthi", 17},
+    {"mflo", 18},
     {"mult", 24},
     {"multu", 25},
     {"div", 26},
@@ -298,9 +297,9 @@ class Assembler {
     {
         // this is an awful hack, I'm aware.
 
-        uint32_t absolute = ResolveLabel(argument);
+        uint32_t absolute = ResolveLabel(argument) / 4;
 
-        return absolute - (currentTextAddr * 4) - 1;
+        return absolute - currentTextAddr - 1;
     }
 
     uint32_t ResolveRegister(const std::string& argument)
@@ -543,7 +542,7 @@ class Assembler {
 
             uint32_t bytes = std::stoi(directive.argument);
 
-            return std::vector<uint32_t>(bytes / 4 + 1, 0);
+            return std::vector<uint32_t>(bytes / 4 + 1, 1);
         }
 
         throw std::invalid_argument("Directive " + directive.name + " is not supported by this assembler");
@@ -554,8 +553,8 @@ class Assembler {
         // this not the best thing, because I'm padding where I don't really need to
         // but all of this is a giant hack anyway
         if (currentSection == Section::DATA) {
-            for (std::size_t i = 0; i < words.size(); ++i, currentDataAddr += 4) {
-                memory[currentDataAddr / 4] = words[i];
+            for (std::size_t i = 0; i < words.size(); ++i, ++currentDataAddr) {
+                memory[currentDataAddr] = words[i];
             }
         }
     }

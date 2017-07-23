@@ -11,7 +11,7 @@
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    core()
+    core(this)
 {
     ui->setupUi(this);
 }
@@ -105,20 +105,29 @@ void MainWindow::on_pushButton_clicked()
     ui->OutputText->setText("");
 }
 
-void MainWindow::refreshMemoryTable(){
-
+void MainWindow::refreshMemoryTable()
+{
     std::vector<std::pair<uint32_t, uint32_t>> memVec(core.memory.begin(), core.memory.end());
 
-    std::sort(memVec.begin(), memVec.end(),[] (const auto& a, const auto& b) { return a.first < b.first; });
+    std::sort(memVec.begin(), memVec.end(), [] (const auto& a, const auto& b) { return a.first < b.first; });
 
     ui->memTable->setRowCount(memVec.size());
 
-    int i = 0;
+    size_t i = 0;
 
-    for(const auto & pair : memVec){
+    for (const auto& pair : memVec) {
         ui->memTable->setItem(i,0,new QTableWidgetItem(QString::number(pair.first)));
         ui->memTable->setItem(i,1,new QTableWidgetItem(QString::number(pair.second)));
         i++;
-
     }
+}
+
+void MainWindow::on_actionAbout_Qt_triggered()
+{
+    QMessageBox::aboutQt(this);
+}
+
+void MainWindow::Print(std::string line)
+{
+    ui->OutputText->append(QString::fromStdString(line));
 }
