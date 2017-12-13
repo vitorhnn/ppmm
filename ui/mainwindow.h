@@ -33,6 +33,8 @@ private slots:
     void on_assembleButton_clicked();
 
     void on_actionAbout_Qt_triggered();
+    void on_actionCache_info_triggered();
+
 private:
     Ui::MainWindow *ui;
 

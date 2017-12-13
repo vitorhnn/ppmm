@@ -11,8 +11,14 @@
 class Memory {
     std::unordered_map<u32, u32> storage;
 
-    Cache<4> l1;
+    Cache<8> l1;
+
+    Cache<16> l2;
 public:
+    unsigned misses;
+
+    unsigned hits;
+
     Memory();
 
     void Assign(std::unordered_map<u32, u32>&& memory);
@@ -23,5 +29,5 @@ public:
 
     void Set(u32 address, u32 val);
 
-    bool MaybeGet(u32 address, u32& out);
+    bool FetchInstruction(u32 address, u32& out);
 };

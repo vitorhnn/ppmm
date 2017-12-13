@@ -126,3 +126,10 @@ void MainWindow::Print(std::string line)
 {
     ui->OutputText->append(QString::fromStdString(line));
 }
+
+void MainWindow::on_actionCache_info_triggered()
+{
+    auto misses = core.memory.misses;
+    auto hits = core.memory.hits;
+    QMessageBox::information(this, "Cache info", QString("Misses: %1\nHits: %2").arg(misses).arg(hits));
+}

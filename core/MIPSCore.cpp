@@ -36,7 +36,7 @@ void MIPSCore::Reset()
 
 bool MIPSCore::Cycle()
 {
-    bool success = memory.MaybeGet(pc, instruction);
+    bool success = memory.FetchInstruction(pc, instruction);
 
     if (!success) {
         return false;

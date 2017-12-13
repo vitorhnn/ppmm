@@ -955,6 +955,8 @@
     <property name="title">
      <string>File</string>
     </property>
+    <addaction name="actionCache_info"/>
+    <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
@@ -995,6 +997,11 @@
   <action name="actionAbout_Qt">
    <property name="text">
     <string>About Qt</string>
+   </property>
+  </action>
+  <action name="actionCache_info">
+   <property name="text">
+    <string>Cache info</string>
    </property>
   </action>
  </widget>
