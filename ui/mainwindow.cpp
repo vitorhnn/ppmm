@@ -64,7 +64,7 @@ void MainWindow::on_loadButton_clicked()
 void MainWindow::on_assembleButton_clicked()
 {
     try {
-        core.memory = Assemble(ui->textEdit->toPlainText().toStdString().append("\n"));
+        core.memory.Assign(Assemble(ui->textEdit->toPlainText().toStdString().append("\n")));
     } catch (const std::invalid_argument& ex) {
         QMessageBox::critical(this, "Invalid argument", QString(ex.what()));
     }
@@ -102,7 +102,7 @@ void MainWindow::on_stepButton_clicked()
 
 void MainWindow::refreshMemoryTable()
 {
-    std::vector<std::pair<uint32_t, uint32_t>> memVec(core.memory.begin(), core.memory.end());
+    auto memVec = core.memory.AsVector();
 
     std::sort(memVec.begin(), memVec.end(), [] (const auto& a, const auto& b) { return a.first < b.first; });
 

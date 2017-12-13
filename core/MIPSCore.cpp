@@ -36,9 +36,9 @@ void MIPSCore::Reset()
 
 bool MIPSCore::Cycle()
 {
-    try {
-        instruction = memory.at(pc);
-    } catch (const std::out_of_range& exception) {
+    bool success = memory.MaybeGet(pc, instruction);
+
+    if (!success) {
         return false;
     }
 
@@ -472,7 +472,7 @@ void MIPSCore::LB()//
 
     uint16_t offset = imm / 4;
 
-    u32 word = memory[(gpr[rs] + offset) / 4];
+    u32 word = memory.Get((gpr[rs] + offset) / 4);
 
     uint16_t little_box = imm % 4;
 
@@ -495,7 +495,7 @@ void MIPSCore::LH()//
 
     uint16_t offset = imm / 4;
 
-    u32 word = memory[(gpr[rs] + offset) / 4];
+    u32 word = memory.Get((gpr[rs] + offset) / 4);
 
     uint16_t little_box = imm % 4;
 
@@ -516,7 +516,7 @@ void MIPSCore::LW()
         throw UnalignedAccessException(pc, gpr[rs] + imm);
     }
 
-    gpr[rt] = memory[(gpr[rs] + imm) / 4];
+    gpr[rt] = memory.Get((gpr[rs] + imm) / 4);
 
     pc++;
 }
@@ -529,7 +529,7 @@ void MIPSCore::SW()
         throw UnalignedAccessException(pc, gpr[rs] + imm);
     }
 
-    memory[(gpr[rs] + imm) / 4] = gpr[rt];
+    memory.Set((gpr[rs] + imm) / 4, gpr[rt]);
 
     pc++;
 }

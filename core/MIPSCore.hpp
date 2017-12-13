@@ -4,22 +4,9 @@
 #include <array>
 #include <unordered_map>
 
+#include "Memory.hpp"
+#include "Types.hpp"
 
-using u64 = uint64_t;
-using u32 = uint32_t;
-using u16 = uint16_t;
-using u8  = uint8_t;
-
-using s64 = int64_t;
-using s32 = int32_t;
-using s16 = int16_t;
-using s8 = int8_t;
-
-struct OutputSink {
-    virtual ~OutputSink() {}
-
-    virtual void Print(std::string line) = 0;
-};
 
 struct MIPSCore {
     std::array<u32, 32> gpr;
@@ -28,9 +15,9 @@ struct MIPSCore {
 
     u32 pc;
 
-    std::unordered_map<u32, u32> memory;
+    Memory memory;
 
-    MIPSCore(OutputSink* sink);
+    explicit MIPSCore(OutputSink* sink);
 
     bool Cycle();
 
