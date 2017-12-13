@@ -11,11 +11,11 @@
 class Memory {
     std::unordered_map<u32, u32> storage;
 
-    Cache<4> L1;
+    Cache<4> l1;
 public:
     Memory();
 
-    void Assign(std::unordered_map<u32, u32> memory);
+    void Assign(std::unordered_map<u32, u32>&& memory);
 
     std::vector<std::pair<u32, u32>> AsVector();
 

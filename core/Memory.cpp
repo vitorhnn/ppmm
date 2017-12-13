@@ -1,13 +1,14 @@
 #include "Memory.hpp"
 
-Memory::Memory() : L1(storage)
+Memory::Memory() : l1(storage)
 {
 
 }
 
-void Memory::Assign(std::unordered_map<u32, u32> memory)
+void Memory::Assign(std::unordered_map<u32, u32>&& memory)
 {
     // TODO: invalidate cache
+    l1.Invalidate();
     storage = memory;
 }
 
@@ -19,13 +20,13 @@ std::vector<std::pair<u32, u32>> Memory::AsVector()
 u32 Memory::Get(u32 address)
 {
     // TODO: STUB
-    auto l1 = L1.Get(address);
+    auto l1val = l1.Get(address);
     return storage[address];
 }
 
 void Memory::Set(u32 address, u32 val)
 {
-    L1.Set(address, val);
+    l1.Set(address, val);
     storage[address] = val;
 }
 

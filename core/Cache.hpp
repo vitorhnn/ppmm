@@ -15,16 +15,27 @@ struct Block {
     u32 data;
 };
 
+constexpr bool is_powerof2(int v) {
+    return v && ((v & (v - 1)) == 0);
+}
+
 // size gets used as 2^size
 template <u32 size>
 class Cache {
+    static_assert(is_powerof2(size), "size should be a power of two");
+
     static const u32 tag_size = 32 - size + 2;
 
     std::array<Block<tag_size>, size> storage;
 
     const std::unordered_map<u32, u32>& memory;
 public:
-    Cache(const std::unordered_map<u32, u32>& memory)  : memory(memory)
+    Cache(const std::unordered_map<u32, u32>& memory) : memory(memory)
+    {
+        Invalidate();
+    }
+
+    void Invalidate()
     {
         for (auto& block : storage) {
             block.valid = false;
@@ -56,7 +67,7 @@ public:
     void Set(u32 address, u32 val)
     {
         u32 pos = address % size;
-        auto tag = std::bitset<tag_size>(address > 32 - tag_size);
+        auto tag = std::bitset<tag_size>(address >> 32 - tag_size);
 
         auto &block = storage[pos];
 
