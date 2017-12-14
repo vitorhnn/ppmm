@@ -74,7 +74,7 @@ public:
         }
     }
 
-    void Set(u32 address, u32 val)
+    bool Set(u32 address, u32 val)
     {
         u32 pos = address % size;
         auto tag = std::bitset<tag_size>(address >> 32 - tag_size);
@@ -84,16 +84,13 @@ public:
         if (block.tag == tag && block.valid) {
             // hit, modify
             block.data = val;
+            return true;
         } else {
             // miss, set data and tags
             block.valid = true;
             block.tag = tag;
             block.data = val;
+            return false;
         }
-    }
-
-    bool FetchInstruction(u32 address, u32& out)
-    {
-
     }
 };

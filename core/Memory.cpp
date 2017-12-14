@@ -12,7 +12,7 @@ void Memory::Assign(std::unordered_map<u32, u32>&& memory)
 {
     l1.Invalidate();
     l2.Invalidate();
-    storage = memory;
+    storage = std::move(memory);
     misses = 0;
 }
 
@@ -49,13 +49,44 @@ u32 Memory::Get(u32 address)
 void Memory::Set(u32 address, u32 val)
 {
     // write through because we're lazy
-    l1.Set(address, val);
-    l2.Set(address, val);
+    if (!l1.Set(address, val)) {
+        ++misses;
+    } else {
+        ++hits;
+    }
+
+    if (!l2.Set(address, val)) {
+        ++misses;
+    } else {
+        ++hits;
+    }
+
     storage[address] = val;
 }
 
 bool Memory::FetchInstruction(u32 address, u32& out)
 {
+    try {
+        if (l1.Get(address, out)) {
+            ++hits;
+            return true;
+        }
+
+        ++misses;
+
+        if (l2.Get(address, out)) {
+            ++hits;
+            return true;
+        }
+
+        ++misses;
+
+        out = storage.at(address);
+        return true;
+    } catch (const std::out_of_range& ex) {
+        return false;
+    }
+    /*
     auto res = storage.find(address);
 
     if (res == storage.end()) {
@@ -64,6 +95,7 @@ bool Memory::FetchInstruction(u32 address, u32& out)
 
     out = res->second;
     return true;
+    */
 }
 
 

@@ -2,6 +2,8 @@
 
 #include <unordered_map>
 
+#include <boost/algorithm/string.hpp>
+
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix_core.hpp>
 #include <boost/spirit/include/phoenix_operator.hpp>
@@ -543,6 +545,23 @@ class Assembler {
             uint32_t bytes = std::stoi(directive.argument);
 
             return std::vector<uint32_t>(bytes / 4 + 1, 1);
+        }
+
+        if (directive.name == "word") {
+            if (currentSection == Section::TEXT) {
+                throw std::invalid_argument("Can't use word while in text section");
+            }
+
+            std::vector<std::string> args;
+            std::vector<uint32_t> out;
+            boost::split(args, directive.argument, boost::is_any_of(","));
+
+            for (const auto& arg : args) {
+                uint32_t val = std::stoi(arg);
+                out.push_back(val);
+            }
+
+            return out;
         }
 
         throw std::invalid_argument("Directive " + directive.name + " is not supported by this assembler");
